@@ -18,6 +18,7 @@
 #define ENC_DT 19
 #define ENC_SW 5
 
+// інціалізуємо
 TFT_eSPI tft = TFT_eSPI();
 DHT dht(DHTPIN, DHTTYPE);
 ESP32Encoder encoder;
@@ -54,27 +55,27 @@ void setup() {
 
   encoder.attachSingleEdge(ENC_CLK, ENC_DT);
   encoder.setCount((long)(setpointTemperature * 2.0));
-
+//основний текст
   tft.loadFont(FONTT);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-
-  tft.setCursor(65, 180);
+  tft.setCursor(35, 150);
   tft.print("У приміщенні:");
-  tft.setCursor(65, 240);
+  tft.setCursor(120, 150);
   tft.print("Вологість:");
-  tft.setCursor(80, 100);
+  tft.setCursor(100, 80);
   tft.print("Задана:");
-
+//стрінга з заданою темп
   tft.loadFont(FONT_);
   tft.setTextPadding(150);
   char setpointString[10];
   dtostrf(setpointTemperature, 4, 1, setpointString);
   strcat(setpointString, "°");
-  tft.drawString(setpointString, 80, 120);
+  tft.drawString(setpointString, 75, 90);
   previousSetpoint = setpointTemperature;
 }
 
 void loop() {
+// вказування темп, за допомогою кнопки на енкодері
   bool currentButtonState = digitalRead(ENC_SW);
   if (currentButtonState == LOW && lastButtonState == HIGH && (millis() - lastButtonPressTime > debounceDelay)) {
     isEditMode = !isEditMode;
@@ -106,16 +107,14 @@ void loop() {
     if (setpointTemperature != previousSetpoint) {
       lastEditTime = millis();
       previousSetpoint = setpointTemperature;
-      Serial.print("New setpoint: ");
-      Serial.println(setpointTemperature);
     }
   }
-
+//проводимо вимір темп раз на 2сек
   if (millis() - dhtTimer > 2000) {
     dhtTimer = millis();
     float t = dht.readTemperature();
     float h = dht.readHumidity();
-
+//перевірка чи є помилка
     if (isnan(t) || isnan(h)) {
       isTempError = true;
     } else if (t == lastReadTemperature) {
@@ -126,15 +125,15 @@ void loop() {
       isTempError = false;
       lastReadTemperature = t;
       lastTempChangeTime = millis();
-      lastReadHumidity = h;
+      lastReadHumidity = h; 
     }
-
+//cповіщення про помилку
     if (isTempError) {
       tft.loadFont(FONTT);
       tft.setTextColor(TFT_RED, TFT_BLACK);
       tft.setTextPadding(150);
-      tft.drawString("ERROR", 80, 200);
-      tft.drawString("ERROR", 80, 260);
+      tft.drawString("DHT ERROR", 80, 260);
+      tft.drawString("DHT ERROR", 80, 260);
     } else {
       tft.loadFont(FONT__);
       tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -142,7 +141,7 @@ void loop() {
       char tempString[10];
       dtostrf(lastReadTemperature, 4, 1, tempString);
       strcat(tempString, "°");
-      tft.drawString(tempString, 80, 200);
+      tft.drawString(tempString, 35, 160);
 
       tft.loadFont(FONT__);
       tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -150,7 +149,7 @@ void loop() {
       char humString[10];
       dtostrf(lastReadHumidity, 4, 1, humString);
       strcat(humString, "%");
-      tft.drawString(humString, 80, 180);
+      tft.drawString(humString, 120, 160);
     }
   }
 
@@ -163,14 +162,14 @@ void loop() {
       tft.loadFont(FONT_);
       tft.setTextColor(TFT_WHITE, TFT_BLACK);
       tft.setTextPadding(150);
-      tft.drawString(setpointString, 80, 120);
+      tft.drawString(setpointString, 75, 90);
     } else {
-      tft.fillRect(80, 120, 150, 40, TFT_BLACK);
+      tft.fillRect(75, 90, 150, 40, TFT_BLACK);
     }
   } else {
     tft.loadFont(FONT_);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setTextPadding(150);
-    tft.drawString(setpointString, 80, 120);
+    tft.drawString(setpointString, 75, 90);
   }
 }
