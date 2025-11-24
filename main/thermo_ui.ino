@@ -2,6 +2,7 @@
 #include <TFT_eSPI.h>
 #include <DHT.h>
 #include <ESP32Encoder.h>
+#include "Valve_Comms.h"
 
 #include "NotoSansBold15.h"
 #include "NotoSansBold36.h"
@@ -18,7 +19,6 @@
 #define ENC_DT 19
 #define ENC_SW 5
 
-// інціалізуємо
 TFT_eSPI tft = TFT_eSPI();
 DHT dht(DHTPIN, DHTTYPE);
 ESP32Encoder encoder;
@@ -43,6 +43,8 @@ const long debounceDelay = 50;
 void setup() {
   Serial.begin(115200);
 
+  initCommunication();
+
   tft.init();
   tft.setRotation(0);
   tft.fillScreen(TFT_BLACK);
@@ -55,7 +57,7 @@ void setup() {
 
   encoder.attachSingleEdge(ENC_CLK, ENC_DT);
   encoder.setCount((long)(setpointTemperature * 2.0));
-//основний текст
+
   tft.loadFont(FONTT);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setCursor(35, 150);
@@ -64,7 +66,7 @@ void setup() {
   tft.print("Вологість:");
   tft.setCursor(100, 80);
   tft.print("Задана:");
-//стрінга з заданою темп
+
   tft.loadFont(FONT_);
   tft.setTextPadding(150);
   char setpointString[10];
@@ -75,12 +77,13 @@ void setup() {
 }
 
 void loop() {
-// вказування темп, за допомогою кнопки на енкодері
   bool currentButtonState = digitalRead(ENC_SW);
   if (currentButtonState == LOW && lastButtonState == HIGH && (millis() - lastButtonPressTime > debounceDelay)) {
     isEditMode = !isEditMode;
     if (isEditMode) {
       lastEditTime = millis();
+    } else {
+      sendValveCommand(setpointTemperature);
     }
     lastButtonPressTime = millis();
   }
@@ -88,6 +91,7 @@ void loop() {
 
   if (isEditMode && (millis() - lastEditTime > EDIT_TIMEOUT)) {
     isEditMode = false;
+    sendValveCommand(setpointTemperature);
   }
 
   if (isEditMode) {
@@ -109,12 +113,12 @@ void loop() {
       previousSetpoint = setpointTemperature;
     }
   }
-//проводимо вимір темп раз на 2сек
+
   if (millis() - dhtTimer > 2000) {
     dhtTimer = millis();
     float t = dht.readTemperature();
     float h = dht.readHumidity();
-//перевірка чи є помилка
+
     if (isnan(t) || isnan(h)) {
       isTempError = true;
     } else if (t == lastReadTemperature) {
@@ -127,12 +131,11 @@ void loop() {
       lastTempChangeTime = millis();
       lastReadHumidity = h; 
     }
-//cповіщення про помилку
+
     if (isTempError) {
       tft.loadFont(FONTT);
       tft.setTextColor(TFT_RED, TFT_BLACK);
       tft.setTextPadding(150);
-      tft.drawString("DHT ERROR", 80, 260);
       tft.drawString("DHT ERROR", 80, 260);
     } else {
       tft.loadFont(FONT__);
